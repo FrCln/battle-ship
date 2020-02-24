@@ -86,6 +86,7 @@ class Field:
                 window.bell()
         window = Tk()
         window.title('Выбор корабля')
+        window.grab_set()
         ship_size = IntVar(window)
         ship_size.set(1)
         sizes = []
@@ -124,9 +125,9 @@ class Field:
             return False
         if not 0 <= y < self.shape[1]:
             return False
-        if orientation == 0 and x >= self.shape[0] - size:
+        if orientation == 0 and x > self.shape[0] - size:
             return False
-        if orientation == 1 and y >= self.shape[1] - size:
+        if orientation == 1 and y > self.shape[1] - size:
             return False
         for point in self._get_neibourhood(size, x, y, orientation):
             if not self.empty(*point):
@@ -159,11 +160,4 @@ class Field:
             self.x + self.cell_size * (ship.x + (ship.size if ship.orientation == 0 else 1)),
             self.y + self.cell_size * (ship.y + (ship.size if ship.orientation == 1 else 1)),
             fill='red'
-        )
-        print(
-            self.x, self.y, self.cell_size, ship.x, ship.y, ship.size, ship.orientation, '\n',
-            self.x + self.cell_size * ship.x,
-            self.y + self.cell_size * ship.y,
-            self.x + self.cell_size * (ship.x + (ship.size if ship.orientation == 0 else 1)),
-            self.y + self.cell_size * (ship.y + (ship.size if ship.orientation == 1 else 1)),
         )
