@@ -1,14 +1,30 @@
 from tkinter import *
 
-from field import Field
+from field import SetField
 
 
 SIZE = 40
+job = None
 
 
-def update_labels(labels, ships):
-    for i in range(1, 5):
-        labels[i].configure(text=f'{i}-палубных: {ships[i]}')
+def game():
+    pass
+
+
+def on_close():
+    window.after_cancel(job)
+    window.destroy()
+
+
+def update_labels():
+    global job
+    ships = field.ships
+    if ships == field.available:
+        game()
+    else:
+        for i in range(1, 5):
+            labels[i].configure(text=f'{i}-палубных: {ships[i]}')
+        job = window.after(50, update_labels)
 
 
 window = Tk()
@@ -17,14 +33,13 @@ window.title('Battle Ship')
 canvas = Canvas(window, width=SIZE * 15, height=SIZE * 15, bg='white')
 canvas.grid(row=0, column=0, rowspan=4, columnspan=4)
 
-field = Field(canvas, SIZE * 2.5, SIZE * 2.5, SIZE)
+field = SetField(canvas, SIZE * 5 // 2, SIZE * 5 // 2, SIZE)
 
-ships = [0, 4, 3, 2, 1]
 labels = {}
 for i in range(1, 5):
-    labels[i] = Label(window, text=f'{i}-палубных: {ships[i]}')
+    labels[i] = Label(window)
     labels[i].grid(row=4, column=i - 1)
 
-canvas.bind('<Button-1>', field.click_field)
-
+job = window.after(50, update_labels)
+window.protocol("WM_DELETE_WINDOW", on_close)
 window.mainloop()

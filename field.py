@@ -1,10 +1,13 @@
+from abc import ABC, abstractmethod
 from tkinter import *
 
 from cell import Cell
 from ship import Ship
 
 
-class Field:
+class AbstractField(ABC):
+    available = [0, 1, 1, 1, 1]
+
     def __init__(self, canvas, x, y, cell_size, draw=True, shape=(10, 10)):
         self.cells = [
             [Cell(x, y) for x in range(shape[0])]
@@ -18,6 +21,7 @@ class Field:
         self.cell_size = cell_size
         if draw:
             self.draw_field()
+            self.canvas.bind('<Button-1>', self.click_field)
 
     def __str__(self):
         lines = [
@@ -69,6 +73,28 @@ class Field:
                 text=str(i + 1)
             )
 
+    @abstractmethod
+    def click_field(self, event):
+        pass
+
+    @property
+    def ships(self):
+        result = [0] * 5
+        for ship in self._ships:
+            result[ship.size] += 1
+        return result
+
+    def draw_ship(self, ship):
+        self.canvas.create_rectangle(
+            self.x + self.cell_size * ship.x,
+            self.y + self.cell_size * ship.y,
+            self.x + self.cell_size * (ship.x + (ship.size if ship.orientation == 0 else 1)),
+            self.y + self.cell_size * (ship.y + (ship.size if ship.orientation == 1 else 1)),
+            fill='red'
+        )
+
+
+class SetField(AbstractField):
     def click_field(self, event):
         x, y = event.x, event.y
         if self.rect in self.canvas.find_overlapping(x, y, x, y):
@@ -78,21 +104,32 @@ class Field:
                 self.choose_ship(x, y)
 
     def choose_ship(self, x, y):
+        def on_close():
+            self.canvas.bind('<Button-1>', self.click_field)
+            window.destroy()
         def click():
-            if self.check_cell(ship_size.get(), x, y, orientation.get()):
-                self.create_ship(ship_size.get(), x, y, orientation.get())
+            size = ship_size.get()
+            if self.ships[size] < self.available[size] and \
+            self.check_cell(size, x, y, orientation.get()):
+                self.create_ship(size, x, y, orientation.get())
                 window.destroy()
+                self.canvas.bind('<Button-1>', self.click_field)
             else:
                 window.bell()
         window = Tk()
         window.title('Выбор корабля')
-        window.grab_set()
+        window.protocol("WM_DELETE_WINDOW", on_close)
+        # FIXIT
+        window.focus_set()
+        self.canvas.unbind('<Button-1>')
+        _, root_x, root_y = self.canvas.winfo_toplevel().wm_geometry().split('+')
+        win_x = int(root_x) + self.x + (x + 1) * self.cell_size
+        win_y = int(root_y) + self.y + (y + 1) * self.cell_size
+        window.geometry("+{}+{}".format(win_x, win_y))
         ship_size = IntVar(window)
         ship_size.set(1)
-        sizes = []
         for i in range(1, 5):
             r = Radiobutton(window, text=f'{i}-палубный', variable=ship_size, value=i)
-            sizes.append(r)
             r.grid(row=i - 1, column=0)
         orientation = IntVar(window)
         orientation.set(0)
@@ -146,18 +183,11 @@ class Field:
         self._ships.append(ship)
         self.draw_ship(ship)
 
-    @property
-    def ships(self):
-        result = [0] * 5
-        for ship in self._ships:
-            result[ship.size] += 1
-        return result
 
-    def draw_ship(self, ship):
-        self.canvas.create_rectangle(
-            self.x + self.cell_size * ship.x,
-            self.y + self.cell_size * ship.y,
-            self.x + self.cell_size * (ship.x + (ship.size if ship.orientation == 0 else 1)),
-            self.y + self.cell_size * (ship.y + (ship.size if ship.orientation == 1 else 1)),
-            fill='red'
-        )
+class PlayerField(AbstractField):
+    def click_field(self, event):
+        pass
+
+
+class EnemyField(AbstractField):
+    pass
