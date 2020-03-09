@@ -6,13 +6,12 @@ from ship import Ship
 
 
 class AbstractField(ABC):
-    available = [0, 1, 1, 1, 1]
-
     def __init__(self, canvas, x, y, cell_size, draw=True, shape=(10, 10)):
         self.cells = [
             [Cell(x, y) for x in range(shape[0])]
             for y in range(shape[1])
         ]
+        self.cells_dict = {}
         self._ships = []
         self.shape = shape
         self.canvas = canvas
@@ -21,7 +20,10 @@ class AbstractField(ABC):
         self.cell_size = cell_size
         if draw:
             self.draw_field()
-            self.canvas.bind('<Button-1>', self.click_field)
+            self.bind()
+
+    def bind(self):
+        self.canvas.bind('<Button-1>', self.click_field)
 
     def __str__(self):
         lines = [
@@ -84,34 +86,105 @@ class AbstractField(ABC):
             result[ship.size] += 1
         return result
 
-    def draw_ship(self, ship):
+    def draw_ship(self, ship, fill='red'):
         self.canvas.create_rectangle(
             self.x + self.cell_size * ship.x,
             self.y + self.cell_size * ship.y,
             self.x + self.cell_size * (ship.x + (ship.size if ship.orientation == 0 else 1)),
             self.y + self.cell_size * (ship.y + (ship.size if ship.orientation == 1 else 1)),
-            fill='red'
+            fill=fill
         )
+
+    def create_ship(self, ship, draw=True):
+        if ship.orientation == 0:
+            for i in range(ship.x, ship.x + ship.size):
+                self.cells[i][ship.y].set_ship()
+                self.cells_dict[(i, ship.y)] = ship
+        else:
+            for i in range(ship.y, ship.y + ship.size):
+                self.cells[ship.x][i].set_ship()
+                self.cells_dict[(ship.x, i)] = ship
+
+        self._ships.append(ship)
+        if draw:
+            self.draw_ship(ship)
+
+    def miss(self, x, y):
+        self.cells[x][y].miss()
+        self.canvas.create_line(
+            self.x + x * self.cell_size,
+            self.y + y * self.cell_size,
+            self.x + (x + 1) * self.cell_size,
+            self.y + (y + 1) * self.cell_size
+        )
+        self.canvas.create_line(
+            self.x + (x + 1) * self.cell_size,
+            self.y + y * self.cell_size,
+            self.x + x * self.cell_size,
+            self.y + (y + 1) * self.cell_size
+        )
+
+    def hit(self, x, y):
+        self.cells[x][y].hit()
+        ship = self.cells_dict[(x, y)]
+        ship.hit()
+        if ship.dead:
+            self.kill(ship)
+        else:
+            self.canvas.create_rectangle(
+                self.x + self.cell_size * x,
+                self.y + self.cell_size * y,
+                self.x + self.cell_size * (x + 1),
+                self.y + self.cell_size * (y + 1),
+                fill='#770000'
+            )
+
+    def kill(self, ship):
+        self.draw_ship(ship, 'black')
+        for x, y in self.neighborhood(ship.size, ship.x, ship.y, ship.orientation):
+            if self.cells[x][y].empty:
+                self.miss(x, y)
+
+
+    def alive(self):
+        return any(ship.alive for ship in self._ships)
+
+    def neighborhood(self, size, x, y, orientation):
+        if orientation == 0:
+            ship_coord = {(i, y) for i in range(x, x + size)}
+        else:
+            ship_coord = {(x, i) for i in range(y, y + size)}
+        near_coord = set()
+        for point in ship_coord:
+            near_point = {
+                (i, j) for i in range(point[0] - 1, point[0] + 2)
+                for j in range(point[1] - 1, point[1] + 2)
+                if 0 <= i < self.shape[0] and
+                0 <= j < self.shape[1]
+            }
+            near_coord |= near_point
+        return near_coord | ship_coord
 
 
 class SetField(AbstractField):
+    available = [0, 1, 1, 1, 1]
     def click_field(self, event):
         x, y = event.x, event.y
         if self.rect in self.canvas.find_overlapping(x, y, x, y):
-            x = (x - self.cell_size * 25 // 10) // self.cell_size
-            y = (y - self.cell_size * 25 // 10) // self.cell_size
+            x = (x - self.x) // self.cell_size
+            y = (y - self.y) // self.cell_size
             if self.empty(x, y):
                 self.choose_ship(x, y)
 
     def choose_ship(self, x, y):
         def on_close():
-            self.canvas.bind('<Button-1>', self.click_field)
+            self.bind()
             window.destroy()
         def click():
             size = ship_size.get()
             if self.ships[size] < self.available[size] and \
             self.check_cell(size, x, y, orientation.get()):
-                self.create_ship(size, x, y, orientation.get())
+                self.create_ship(Ship(size, x, y, orientation.get()))
                 window.destroy()
                 self.canvas.bind('<Button-1>', self.click_field)
             else:
@@ -141,22 +214,6 @@ class SetField(AbstractField):
         b.config(command=click)
         b.grid(row=2, column=1, rowspan=2)
 
-    def _get_neibourhood(self, size, x, y, orientation):
-        if orientation == 0:
-            ship_coord = {(i, y) for i in range(x, x + size)}
-        else:
-            ship_coord = {(x, i) for i in range(y, y + size)}
-        near_coord = set()
-        for point in ship_coord:
-            near_point = {
-                (i, j) for i in range(point[0] - 1, point[0] + 2)
-                for j in range(point[1] - 1, point[1] + 2)
-                if 0 <= i < self.shape[0] and
-                0 <= j < self.shape[1]
-            }
-            near_coord |= near_point
-        return near_coord | ship_coord
-
     def check_cell(self, size, x, y, orientation):
         if not 0 <= x < self.shape[0]:
             return False
@@ -166,22 +223,10 @@ class SetField(AbstractField):
             return False
         if orientation == 1 and y > self.shape[1] - size:
             return False
-        for point in self._get_neibourhood(size, x, y, orientation):
+        for point in self.neighborhood(size, x, y, orientation):
             if not self.empty(*point):
                 return False
         return True
-
-    def create_ship(self, size, x, y, orientation):
-        ship = Ship(size, x, y, orientation)
-        if ship.orientation == 0:
-            for i in range(ship.x, ship.x + ship.size):
-                self.cells[i][ship.y].set_ship()
-        else:
-            for i in range(ship.y, ship.y + ship.size):
-                self.cells[ship.x][i].set_ship()
-
-        self._ships.append(ship)
-        self.draw_ship(ship)
 
 
 class PlayerField(AbstractField):
@@ -190,4 +235,27 @@ class PlayerField(AbstractField):
 
 
 class EnemyField(AbstractField):
-    pass
+    blocked = False
+    def click_field(self, event):
+        x, y = event.x, event.y
+        if self.rect in self.canvas.find_overlapping(x, y, x, y):
+            x = (x - self.x) // self.cell_size
+            y = (y - self.y) // self.cell_size
+            if self.empty(x, y):
+                self.miss(x, y)
+                self.block()
+            elif self.cells[x][y].ship():
+                self.hit(x, y)
+                if not self.alive():
+                    self.block()
+
+    def block(self):
+        self.blocked = True
+        self.canvas.bind('<Button-1>', self.not_click)
+
+    def unblock(self):
+        self.blocked = False
+        self.bind()
+
+    def not_click(self, event):
+        pass

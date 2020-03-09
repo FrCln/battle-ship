@@ -18,6 +18,9 @@ class Cell:
     def set_ship(self):
         self.state = SHIP
 
+    def miss(self):
+        self.state = MISSED
+
     def hit(self):
         if self.state == SHIP:
             self.state = DESTOIED_SHIP
@@ -29,3 +32,6 @@ class Cell:
 
     def empty(self):
         return self.state == EMPTY
+
+    def ship(self):
+        return self.state == SHIP

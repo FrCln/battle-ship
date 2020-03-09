@@ -6,7 +6,12 @@ class Ship:
         self.x = x
         self.y = y
         self.orientation = orientation
-        self.alive = True
+        self.alive = size
 
-    def kill(self):
-        self.alive = False
+    @property
+    def dead(self):
+        return self.alive == 0
+
+    def hit(self):
+        if self.alive:
+            self.alive -= 1
