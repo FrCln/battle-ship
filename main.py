@@ -1,67 +1,130 @@
-from ship import Ship
+from tkinter import *
+
+from ai import AI
 from field import Field
-from cell import Cell
+from gui import SetField, PlayerField, EnemyField
+from ship import Ship
 
-field = Field()
-
-
-def get_neibourhood(field, size, x, y, orientation):
-    if orientation == 'x':
-        ship_coord = {(i, y) for i in range(x, x + size)}
-    else:
-        ship_coord = {(x, i) for i in range(y, y + size)}
-    near_coord = set()
-    for point in ship_coord:
-        near_point = {
-            (i, j) for i in range(point[0] - 1, point[0] + 2)
-            for j in range(point[1] - 1, point[1] + 2)
-            if 0 <= i < field.size[0] and
-            0 <= j < field.size[1]
-        }
-        near_coord |= near_point
-    return near_coord | ship_coord
+SIZE = 40
+job = None
 
 
-def check_cell(field, size, x, y, orientation):
-    if not 0 <= x < field.size[0]:
-        return False
-    if not 0 <= y < field.size[1]:
-        return False
-    if orientation == 'x' and x >= field.size[0] - size:
-        return False
-    if orientation == 'y' and y >= field.size[1] - size:
-        return False
-    for point in get_neibourhood(field, size, x, y, orientation):
-        if not field.empty(*point):
+def set_field():
+    def on_close():
+        window.after_cancel(job)
+        window.destroy()
+
+    def update_labels():
+        global job
+        ships = field.ships
+        for i in range(1, 5):
+            labels[i].configure(text=f'{i}-палубных: {ships[i]}')
+        if ships != sf.available:
+            job = window.after(50, update_labels)
+
+    def start_game():
+        ships = field.ships
+        if ships == sf.available:
+            on_close()
+        else:
+            window.bell()
+
+    window = Tk()
+    window.title('Battle Ship')
+
+    canvas = Canvas(window, width=SIZE * 15, height=SIZE * 15, bg='white')
+    canvas.grid(row=0, column=0, rowspan=4, columnspan=4)
+
+    field = Field()
+    sf = SetField(field, canvas, SIZE * 5 // 2, SIZE * 5 // 2, SIZE)
+
+    labels = {}
+    for i in range(1, 5):
+        labels[i] = Label(window)
+        labels[i].grid(row=4, column=i - 1)
+
+    button_ok = Button(window, text='Начать игру', command=start_game)
+    button_ok.grid(row=5, column=0, columnspan=4)
+
+    job = window.after(50, update_labels)
+    window.protocol("WM_DELETE_WINDOW", on_close)
+    window.mainloop()
+    return field
+
+
+def game(player_field, comp_field):
+    def on_close():
+        window.after_cancel(job)
+        window.destroy()
+
+    def check_player_field(x, y):
+        if player_field.cells[x][y].ship():
+            player_field.hit(x, y)
+            pf.hit(x, y)
+            return True
+        else:
+            player_field.miss(x, y)
+            pf.miss(x, y)
             return False
-    return True
+
+    def check_turn():
+        global job
+        if ef.blocked:
+            if not comp_field.alive():
+                print('Ты победил!')
+                return
+            x, y = ai.comp_turn()
+            while check_player_field(x, y):
+                x, y = ai.comp_turn()
+            if not player_field.alive():
+                print('Я победил!')
+                return
+            ef.unblock()
+        job = window.after(50, check_turn)
+
+    window = Tk()
+    window.title('Battle Ship')
+
+    canvas = Canvas(window, width=SIZE * 30, height=SIZE * 15, bg='white')
+    canvas.grid(row=0, column=0, rowspan=4, columnspan=4)
+
+    pf = PlayerField(player_field, canvas, SIZE * 5 // 2, SIZE * 5 // 2, SIZE)
+    pf.draw_ships()
+    ef = EnemyField(comp_field, canvas, SIZE * 15, SIZE * 5 // 2, SIZE)
+
+    ai = AI(player_field)
+
+    job = window.after(50, check_turn)
+    window.protocol("WM_DELETE_WINDOW", on_close)
+    window.mainloop()
 
 
-def create_ship(field, size, x, y, orientation):
-    ship = Ship(size, x, y, orientation)
-    field.set_ship(ship)
+def generate_field():
+    comp_field = Field()
+    comp_ships = [
+        Ship(4, 0, 0, 0),
+        Ship(3, 0, 2, 0),
+        Ship(3, 0, 4, 0),
+        Ship(2, 0, 6, 0),
+        Ship(2, 0, 8, 0),
+        Ship(2, 6, 0, 0),
+        Ship(2, 6, 2, 0),
+        Ship(1, 4, 4, 0),
+        Ship(1, 6, 6, 0),
+        Ship(1, 6, 4, 0),
+        Ship(1, 6, 8, 0)
+    ]
+    for ship in comp_ships:
+        comp_field.create_ship(ship)
+
+    return comp_field
 
 
-def player_place():
-    ship_count = 10
-    ships = [0, 4, 3, 2, 1]
-    while ship_count > 0:
-        print("У вас есть:", ships[4], "четырёхпалубных,", ships[3], "трёхпалубных,", ships[2], "двухпалубных,", ships[1], "однопалубных.")
-        size = int(input("Введите размер коробля: "))
-        if size > 4 or size < 1 or ships[size] == 0:
-            print("Ваш размер не должен превышать 4 и 1, а также кол-во кораблей не может уйти в минус.")
-            continue
-        x = int(input("Введите первую точку постановки коробля: "))
-        y = int(input("Введите вторкю точку постановки коробля: "))
-        orientation = input("Введите сторону,в которую будет смотреть корабль(x или y): ")
-        if not check_cell(field, size, x, y, orientation):
-            print('Занято')
-            continue
-        create_ship(field, size, x, y, orientation)
-        ships[size] -= 1
-        ship_count -= 1
-        print(field)
-        print()
+def main():
+    player_field = generate_field()
+    comp_field = generate_field()
+    game(player_field, comp_field)
 
-player_place()
 
+if __name__ == '__main__':
+    main()

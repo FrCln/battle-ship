@@ -7,10 +7,6 @@ SIZE = 40
 job = None
 
 
-def game():
-    pass
-
-
 def on_close():
     window.after_cancel(job)
     window.destroy()
@@ -19,12 +15,18 @@ def on_close():
 def update_labels():
     global job
     ships = field.ships
-    if ships == field.available:
-        game()
-    else:
-        for i in range(1, 5):
-            labels[i].configure(text=f'{i}-палубных: {ships[i]}')
+    for i in range(1, 5):
+        labels[i].configure(text=f'{i}-палубных: {ships[i]}')
+    if ships != field.available:
         job = window.after(50, update_labels)
+
+
+def start_game():
+    ships = field.ships
+    if ships == field.available:
+        on_close()
+    else:
+        window.bell()
 
 
 window = Tk()
@@ -39,6 +41,9 @@ labels = {}
 for i in range(1, 5):
     labels[i] = Label(window)
     labels[i].grid(row=4, column=i - 1)
+
+button_ok = Button(window, text='Начать игру', command=start_game)
+button_ok.grid(row=5, column=0, columnspan=4)
 
 job = window.after(50, update_labels)
 window.protocol("WM_DELETE_WINDOW", on_close)
