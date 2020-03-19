@@ -132,7 +132,7 @@ class SetField(AbstractUI):
             size = ship_size.get()
             ship = Ship(size, x, y, orientation.get())
             if self.field.num_ships[size] < self.available[size] and \
-            self.check_cell(ship):
+            self.field.check_cell(ship):
                 self.field.create_ship(ship)
                 self.draw_ship(ship)
                 window.destroy()
@@ -163,20 +163,6 @@ class SetField(AbstractUI):
         b = Button(window, text='OK')
         b.config(command=click)
         b.grid(row=2, column=1, rowspan=2)
-
-    def check_cell(self, ship):
-        if not 0 <= ship.x < self.field.shape[0]:
-            return False
-        if not 0 <= ship.y < self.field.shape[1]:
-            return False
-        if ship.orientation == 0 and ship.x > self.field.shape[0] - ship.size:
-            return False
-        if ship.orientation == 1 and ship.y > self.field.shape[1] - ship.size:
-            return False
-        for point in self.field.neighborhood(ship):
-            if not self.field.empty(*point):
-                return False
-        return True
 
 
 class PlayerField(AbstractUI):

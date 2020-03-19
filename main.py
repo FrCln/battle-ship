@@ -1,4 +1,6 @@
+from random import choice
 from tkinter import *
+import tkinter.messagebox as mb
 
 from ai import AI
 from field import Field
@@ -7,24 +9,29 @@ from ship import Ship
 
 SIZE = 40
 job = None
+in_game = False
 
 
 def set_field():
+    global job
+
     def on_close():
         window.after_cancel(job)
         window.destroy()
 
     def update_labels():
         global job
-        ships = field.ships
+        ships = field.num_ships
         for i in range(1, 5):
             labels[i].configure(text=f'{i}-палубных: {ships[i]}')
         if ships != sf.available:
-            job = window.after(50, update_labels)
+            job = window.after(100, update_labels)
 
     def start_game():
-        ships = field.ships
+        global in_game
+        ships = field.num_ships
         if ships == sf.available:
+            in_game = True
             on_close()
         else:
             window.bell()
@@ -49,11 +56,15 @@ def set_field():
     job = window.after(50, update_labels)
     window.protocol("WM_DELETE_WINDOW", on_close)
     window.mainloop()
-    return field
+    if in_game:
+        return field
 
 
 def game(player_field, comp_field):
+    global job
     def on_close():
+        global in_game
+        in_game = False
         window.after_cancel(job)
         window.destroy()
 
@@ -71,22 +82,31 @@ def game(player_field, comp_field):
         global job
         if ef.blocked:
             if not comp_field.alive():
-                print('Ты победил!')
+                mb.showinfo('Поздравляю!', 'Ты победил!')
                 return
             x, y = ai.comp_turn()
             while check_player_field(x, y):
                 x, y = ai.comp_turn()
             if not player_field.alive():
-                print('Я победил!')
+                mb.showinfo('Ура!', 'Я победил!')
                 return
             ef.unblock()
         job = window.after(50, check_turn)
+
+    def restart_game():
+        window.after_cancel(job)
+        window.destroy()
 
     window = Tk()
     window.title('Battle Ship')
 
     canvas = Canvas(window, width=SIZE * 30, height=SIZE * 15, bg='white')
     canvas.grid(row=0, column=0, rowspan=4, columnspan=4)
+
+    restart_button = Button(window, text='Начать заново', command=restart_game)
+    quit_button = Button(window, text='Выйти', command=on_close)
+    restart_button.grid(row=4, column=0, columnspan=2)
+    quit_button.grid(row=4, column=2, columnspan=2)
 
     pf = PlayerField(player_field, canvas, SIZE * 5 // 2, SIZE * 5 // 2, SIZE)
     pf.draw_ships()
@@ -120,10 +140,27 @@ def generate_field():
     return comp_field
 
 
+def generate_random_field():
+    cells = [(x, y) for x in range(10) for y in range(10)]
+    f = Field()
+    sizes = [4] + [3] * 2 + [2] * 3 + [1] * 4
+    for size in sizes:
+        while True:
+            ship = Ship(size, *choice(cells), choice((0, 1)))
+            if f.check_cell(ship):
+                f.create_ship(ship)
+                break
+    return f
+
+
 def main():
-    player_field = generate_field()
-    comp_field = generate_field()
-    game(player_field, comp_field)
+    while True:
+        player_field = set_field()
+        if player_field:
+            comp_field = generate_random_field()
+            game(player_field, comp_field)
+        if not in_game:
+            break
 
 
 if __name__ == '__main__':

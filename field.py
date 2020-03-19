@@ -78,3 +78,17 @@ class Field():
             }
             near_coord |= near_point
         return near_coord | ship_coord
+
+    def check_cell(self, ship):
+        if not 0 <= ship.x < self.shape[0]:
+            return False
+        if not 0 <= ship.y < self.shape[1]:
+            return False
+        if ship.orientation == 0 and ship.x > self.shape[0] - ship.size:
+            return False
+        if ship.orientation == 1 and ship.y > self.shape[1] - ship.size:
+            return False
+        for point in self.neighborhood(ship):
+            if not self.empty(*point):
+                return False
+        return True
