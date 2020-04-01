@@ -85,7 +85,8 @@ def game(player_field, comp_field):
                 mb.showinfo('Поздравляю!', 'Ты победил!')
                 return
             x, y = ai.comp_turn()
-            while check_player_field(x, y):
+            while check_player_field(x, y) and player_field.alive():
+
                 x, y = ai.comp_turn()
             if not player_field.alive():
                 mb.showinfo('Ура!', 'Я победил!')
@@ -119,7 +120,7 @@ def game(player_field, comp_field):
     window.mainloop()
 
 
-def generate_field():
+def generate_test_field():
     comp_field = Field()
     comp_ships = [
         Ship(4, 0, 0, 0),
@@ -155,9 +156,10 @@ def generate_random_field():
 
 def main():
     while True:
-        player_field = set_field()
+        # player_field = set_field()
+        player_field = generate_test_field()
         if player_field:
-            comp_field = generate_random_field()
+            comp_field = generate_test_field()
             game(player_field, comp_field)
         if not in_game:
             break

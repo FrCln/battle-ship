@@ -8,6 +8,9 @@ class Ship:
         self.orientation = orientation
         self.alive = size
 
+    def __repr__(self):
+        return f'Ship({self.size}, {self.x}, {self.y}, {self.orientation}), alive = {self.alive}'
+
     @property
     def dead(self):
         return self.alive == 0

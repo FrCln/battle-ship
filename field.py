@@ -52,6 +52,7 @@ class Field():
         self.cells[x][y].hit()
         ship = self.cells_dict[(x, y)]
         ship.hit()
+        print(ship)
         if ship.dead:
             self.kill(ship)
 
