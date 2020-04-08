@@ -21,7 +21,7 @@ class Field():
         return '\n'.join(' '.join(x for x in line) for line in lines)
 
     def empty(self, x, y):
-        return self.cells[x][y].empty()
+        return self.cells[x][y].empty
 
     @property
     def num_ships(self):
@@ -52,14 +52,14 @@ class Field():
         self.cells[x][y].hit()
         ship = self.cells_dict[(x, y)]
         ship.hit()
-        print(ship)
-        if ship.dead:
-            self.kill(ship)
-
-    def kill(self, ship):
-        for x, y in self.neighborhood(ship):
-            if self.cells[x][y].empty:
-                self.miss(x, y)
+    #     print(ship)
+    #     if ship.dead:
+    #         self.kill(ship)
+    #
+    # def kill(self, ship):
+    #     for x, y in self.neighborhood(ship):
+    #         if self.cells[x][y].empty:
+    #             self.miss(x, y)
 
     def alive(self):
         return any(ship.alive for ship in self._ships)

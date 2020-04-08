@@ -69,7 +69,7 @@ def game(player_field, comp_field):
         window.destroy()
 
     def check_player_field(x, y):
-        if player_field.cells[x][y].ship():
+        if player_field.cells[x][y].ship:
             player_field.hit(x, y)
             pf.hit(x, y)
             if player_field.cells_dict[(x, y)].dead:
@@ -84,7 +84,6 @@ def game(player_field, comp_field):
         global job
         if ef.blocked:
             if not player_field.alive():
-                ai.kill(x, y)
                 mb.showinfo('Ура!', 'Я победил!')
                 return
             if not comp_field.alive():

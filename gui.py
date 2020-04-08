@@ -5,6 +5,7 @@ from cell import Cell
 from ship import Ship
 from field import Field
 
+
 class AbstractUI(ABC):
     def __init__(self, field: Field, canvas: Canvas, x, y, cell_size):
         self.field = field
@@ -111,7 +112,8 @@ class AbstractUI(ABC):
     def kill(self, ship):
         self.draw_ship(ship, 'black')
         for x, y in self.field.neighborhood(ship):
-            if self.field.cells[x][y].empty:
+            print(x, y, self.field.cells[x][y].state)
+            if self.field.empty(x, y):
                 self.field.miss(x, y)
                 self.miss(x, y)
 
@@ -172,12 +174,13 @@ class PlayerField(AbstractUI):
 
 class EnemyField(AbstractUI):
     blocked = False
+
     def click_action(self, x, y):
         if self.field.empty(x, y):
             self.field.miss(x, y)
             self.miss(x, y)
             self.block()
-        elif self.field.cells[x][y].ship():
+        elif self.field.cells[x][y].ship:
             self.field.hit(x, y)
             self.hit(x, y)
             if not self.field.alive():

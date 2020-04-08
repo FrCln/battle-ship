@@ -27,11 +27,10 @@ class Cell:
         else:
             self.state = MISSED
 
-    def draw(self):
-        pass
-
+    @property
     def empty(self):
         return self.state == EMPTY
 
+    @property
     def ship(self):
         return self.state == SHIP
