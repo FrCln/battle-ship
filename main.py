@@ -72,26 +72,35 @@ def game(player_field, comp_field):
         if player_field.cells[x][y].ship():
             player_field.hit(x, y)
             pf.hit(x, y)
-            return True
+            if player_field.cells_dict[(x, y)].dead:
+                return 2
+            return 1
         else:
             player_field.miss(x, y)
             pf.miss(x, y)
-            return False
+            return 0
 
     def check_turn():
         global job
         if ef.blocked:
+            if not player_field.alive():
+                ai.kill(x, y)
+                mb.showinfo('Ура!', 'Я победил!')
+                return
             if not comp_field.alive():
                 mb.showinfo('Поздравляю!', 'Ты победил!')
                 return
-            x, y = ai.comp_turn()
-            while check_player_field(x, y) and player_field.alive():
 
-                x, y = ai.comp_turn()
-            if not player_field.alive():
-                mb.showinfo('Ура!', 'Я победил!')
-                return
-            ef.unblock()
+            x, y = ai.make_turn()
+            result = check_player_field(x, y)
+            if result == 1:
+                ai.hit(x, y)
+            elif result == 2:
+                ai.kill(x, y)
+            else:
+                ai.miss(x, y)
+                ef.unblock()
+
         job = window.after(50, check_turn)
 
     def restart_game():
@@ -113,7 +122,7 @@ def game(player_field, comp_field):
     pf.draw_ships()
     ef = EnemyField(comp_field, canvas, SIZE * 15, SIZE * 5 // 2, SIZE)
 
-    ai = AI(player_field)
+    ai = AI()
 
     job = window.after(50, check_turn)
     window.protocol("WM_DELETE_WINDOW", on_close)

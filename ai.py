@@ -1,62 +1,61 @@
 from random import choice
+from time import sleep
 
 
 class AI:
-    def __init__(self, player_field):
-        n, m = player_field.shape
+    def __init__(self, shape=(10, 10)):
+        n, m = shape
         self.empty_cells = [(i, j) for i in range(n) for j in range(m)]
-        self.player_field = player_field
         self.ship_to_kill = []
-        self.dir = -1
 
-    def check_player_field(self, x, y):
-        if self.player_field.cells[x][y].ship():
-            if self.ship_to_kill:
-                if x == self.ship_to_kill[0][0]:
-                    self.dir = 1
-                elif y == self.ship_to_kill[0][1]:
-                    self.dir = 0
-                else:
-                    raise ValueError(f'Ошибка в расстановке кораблей: {self.ship_to_kill[0]} ({x}, {y})')
-            return True
-        else:
-            return False
-
-    def choice(self):
+    def make_turn(self):
+        sleep(0.5)
         if not self.ship_to_kill:
-            return choice(self.empty_cells)
+            x, y = choice(self.empty_cells)
+            self.empty_cells.remove((x, y))
+            return x, y
         else:
             for x, y in self.neighborhood():
                 if (x, y) in self.empty_cells:
+                    self.empty_cells.remove((x, y))
                     return x, y
 
     def neighborhood(self):
-        x_coords = [coord[0] for coord in self.ship_to_kill]
-        y_coords = [coord[1] for coord in self.ship_to_kill]
-        result = set()
-        if self.dir == 1:
-            for y in range(min(y_coords) - 1, max(y_coords) + 2):
-                result.add((x_coords[0], y))
-        elif self.dir == 0:
-            for x in range(min(x_coords) - 1, max(x_coords) + 2):
-                result.add((x, y_coords[0]))
+        x_coords = {coord[0] for coord in self.ship_to_kill}
+        y_coords = {coord[1] for coord in self.ship_to_kill}
+        if len(self.ship_to_kill) == 1:
+            x, y = self.ship_to_kill[0]
+            return [(x-1, y), (x+1, y), (x, y-1), (x, y+1)]
         else:
-            x = x_coords[0]
-            y = y_coords[0]
-            result = {(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)}
-        return result
-
-    def comp_turn(self):
-        x, y = self.choice()
-        self.empty_cells.remove((x, y))
-        if self.check_player_field(x, y):
-            ship = self.player_field.cells_dict[(x, y)]
-            if ship.alive == 1:
-                self.ship_to_kill = []
-                self.dir = -1
-                for x, y in self.player_field.neighborhood(ship):
-                    if (x, y) in self.empty_cells:
-                        self.empty_cells.remove((x, y))
+            if len(x_coords) == 1:
+                x = x_coords.pop()
+                return (x, min(y_coords) - 1), (x, max(y_coords) + 1)
+            elif len(y_coords) == 1:
+                y = y_coords.pop()
+                return (min(x_coords) - 1, y), (max(x_coords) + 1, y)
             else:
-                self.ship_to_kill.append((x, y))
-        return x, y
+                assert False, f'Ошибка в расстановке кораблей: {self.ship_to_kill[0]} ({x}, {y})'
+
+    def get_empty_cells(self):
+        res = set()
+        for x, y in self.ship_to_kill:
+            res.update({
+                (x + i, y + j)
+                for i in range(-1, 2)
+                for j in range(-1, 2)
+            })
+        return res
+
+    def miss(self, x, y):
+        pass
+
+    def hit(self, x, y):
+        self.ship_to_kill.append((x, y))
+
+    def kill(self, x, y):
+        self.ship_to_kill.append((x, y))
+        for x, y in self.get_empty_cells():
+            if (x, y) in self.empty_cells:
+                self.empty_cells.remove((x, y))
+        self.ship_to_kill = []
+
