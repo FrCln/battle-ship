@@ -52,14 +52,6 @@ class Field():
         self.cells[x][y].hit()
         ship = self.cells_dict[(x, y)]
         ship.hit()
-    #     print(ship)
-    #     if ship.dead:
-    #         self.kill(ship)
-    #
-    # def kill(self, ship):
-    #     for x, y in self.neighborhood(ship):
-    #         if self.cells[x][y].empty:
-    #             self.miss(x, y)
 
     def alive(self):
         return any(ship.alive for ship in self._ships)

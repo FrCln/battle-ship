@@ -1,5 +1,3 @@
-from cell import Cell
-
 class Ship:
     def __init__(self, size, x, y, orientation):
         self.size = size

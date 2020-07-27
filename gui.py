@@ -112,7 +112,6 @@ class AbstractUI(ABC):
     def kill(self, ship):
         self.draw_ship(ship, 'black')
         for x, y in self.field.neighborhood(ship):
-            print(x, y, self.field.cells[x][y].state)
             if self.field.empty(x, y):
                 self.field.miss(x, y)
                 self.miss(x, y)

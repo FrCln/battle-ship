@@ -164,10 +164,9 @@ def generate_random_field():
 
 def main():
     while True:
-        # player_field = set_field()
-        player_field = generate_test_field()
+        player_field = set_field()
         if player_field:
-            comp_field = generate_test_field()
+            comp_field = generate_random_field()
             game(player_field, comp_field)
         if not in_game:
             break
